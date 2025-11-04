@@ -24,18 +24,18 @@
     <!-- 4. Babel (Must load after libraries) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- 5. Google Font "Aldrich" -->
+    <!-- 5. Google Font "Geo" [UPDATED] -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geo&display=swap" rel="stylesheet">
 
-    <!-- 6. Tailwind Config to add the new font -->
+    <!-- 6. Tailwind Config to add the new font [UPDATED] -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Aldrich', 'sans-serif'],
+                        sans: ['Geo', 'sans-serif'],
                     },
                 },
             },
@@ -43,9 +43,9 @@
     </script>
     
     <style>
-        /* Set base font to Aldrich */
+        /* Set base font to Geo [UPDATED] */
         body {
-            font-family: 'Aldrich', sans-serif;
+            font-family: 'Geo', sans-serif;
             background-color: #030712; /* gray-950 */
         }
         .bg-main-gradient {
@@ -81,7 +81,7 @@
         <!-- This is a simple loader that shows BEFORE React loads -->
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 1rem;">
             <div style="width: 5rem; height: 5rem; border-radius: 50%; border: 4px solid #4a044e; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
-            <p style="font-size: 1.1rem; color: #d1d5db; font-family: 'Aldrich', sans-serif;">Loading Dashboard...</p>
+            <p style="font-size: 1.1rem; color: #d1d5db; font-family: 'Geo', sans-serif;">Loading Dashboard...</p>
         </div>
         <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
     </div>
@@ -110,14 +110,14 @@
                 supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             }
 
+            // [UPDATED] Removed 'arbitrage_alerts' and the 'emoji' property
             const CATEGORIES = [
-                { id: 'paid_updates', name: 'Dexscreener Paid', icon: 'TrendingUp', color: 'from-purple-500 to-pink-500', emoji: '💎' },
-                { id: 'cto_updates', name: 'CTO Updates', icon: 'Droplet', color: 'from-blue-500 to-cyan-500', emoji: '💧' },
-                { id: 'graduations', name: 'Graduations', icon: 'GraduationCap', color: 'from-green-500 to-emerald-500', emoji: '🎓' },
-                { id: 'top_gainers', name: 'Top Gainers', icon: 'Flame', color: 'from-orange-500 to-red-500', emoji: '🔥' },
-                { id: 'whale_alerts', name: 'Whale', icon: 'Whale', color: 'from-indigo-500 to-purple-500', emoji: '🐋' },
-                { id: 'smart_money', name: 'Smart Money', icon: 'Brain', color: 'from-yellow-500 to-orange-500', emoji: '🧠' },
-                { id: 'arbitrage_alerts', name: 'Arbitrage', icon: 'Zap', color: 'from-pink-500 to-rose-500', emoji: '⚡' }
+                { id: 'paid_updates', name: 'Dexscreener Paid', icon: 'TrendingUp', color: 'from-purple-500 to-pink-500' },
+                { id: 'cto_updates', name: 'CTO Updates', icon: 'Droplet', color: 'from-blue-500 to-cyan-500' },
+                { id: 'graduations', name: 'Graduations', icon: 'GraduationCap', color: 'from-green-500 to-emerald-500' },
+                { id: 'top_gainers', name: 'Top Gainers', icon: 'Flame', color: 'from-orange-500 to-red-500' },
+                { id: 'whale_alerts', name: 'Whale', icon: 'Whale', color: 'from-indigo-500 to-purple-500' },
+                { id: 'smart_money', name: 'Smart Money', icon: 'Brain', color: 'from-yellow-500 to-orange-500' }
             ];
             
             const CHAINS = ['All Chains', 'Solana', 'Ethereum', 'Base', 'BSC', 'Arbitrum', 'Polygon'];
@@ -218,7 +218,7 @@
                                 e('span', { className: 'text-gray-300 font-semibold' }, formatCurrency(token.market_cap))
                             ),
                             
-                            // --- Arbitrage Fields ---
+                            // --- Arbitrage Fields (Removed category, keeping logic just in case) ---
                             showArbitrageColumns && e('div', { className: 'flex justify-between text-sm' },
                                 e('span', { className: 'text-gray-400' }, 'Spread'),
                                 e('span', { className: 'text-yellow-400 font-semibold' }, token.spread_percent ? `${(token.spread_percent * 100).toFixed(2)}%` : '-')
@@ -325,8 +325,10 @@
                     // Header
                     e('header', { className: 'border-b border-gray-800 bg-black/40 backdrop-blur-xl sticky top-0 z-30' },
                         e('div', { className: 'max-w-7xl mx-auto px-4 py-6' },
-                            e('div', { className: 'flex items-center justify-between flex-wrap gap-4' },
-                                e('div', null,
+                            // [UPDATED] Changed outer flex to justify-center text block on mobile, or justify-between on desktop
+                            e('div', { className: 'flex flex-col md:flex-row items-center justify-center md:justify-between flex-wrap gap-4' },
+                                // [UPDATED] Added text-center class to center the title/subtitle
+                                e('div', { className: 'w-full text-center md:text-left md:w-auto' },
                                     e('h1', { className: 'text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent' }, 'Crypto Tracker Pro'),
                                     e('p', { className: 'text-gray-400 mt-1' }, 'Real-time market intelligence')
                                 ),
@@ -358,21 +360,22 @@
                     // Category Navigation
                     e('nav', { className: 'border-b border-gray-800 bg-black/30 backdrop-blur-xl sticky top-[97px] z-20' }, 
                         e('div', { className: 'max-w-7xl mx-auto px-4' },
-                            e('div', { className: 'flex gap-2 overflow-x-auto py-4 no-scrollbar' },
+                            e('div', { className: 'flex gap-2 overflow-x-auto py-4 no-scrollbar justify-center' },
                                 CATEGORIES.map(category => {
-                                    const Icon = ICONS.get(category.icon);
+                                    // [REMOVED] Icon component usage
                                     const isActive = selectedCategory === category.id;
                                     return e('button', {
                                         key: category.id,
                                         onClick: () => setSelectedCategory(category.id),
-                                        className: `flex items-center gap-1.5 px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all transform hover:scale-105 ${
+                                        // [UPDATED] Removed gap-1.5 since only text remains
+                                        className: `flex items-center justify-center px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all transform hover:scale-105 ${
                                             isActive
                                                 ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
                                                 : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
                                         }`
                                     },
-                                        e('span', { className: 'text-lg' }, category.emoji),
-                                        e(Icon, { size: 18 }),
+                                        // [REMOVED] Emoji span
+                                        // [REMOVED] Icon element
                                         category.name
                                     );
                                 })
@@ -390,7 +393,7 @@
                         ) :
                         !loading && tokens.length === 0 ? e('div', { className: 'text-center py-20' },
                             e('div', { className: `inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r ${currentCategory.color} mb-4` },
-                                e('span', { className: 'text-4xl' }, currentCategory.emoji)
+                                e('span', { className: 'text-4xl' }, currentCategory.emoji) // The large emoji in the empty state
                             ),
                             e('h3', { className: 'text-2xl font-bold text-gray-300 mb-2' }, 'No tokens found'),
                             e('p', { className: 'text-gray-500' }, `Check back soon for updates in the ${currentCategory.name} category.`)
@@ -426,7 +429,7 @@
             // This will catch any synchronous error during initialization
             console.error("Failed to initialize React App:", err);
             const rootEl = document.getElementById('root');
-            rootEl.innerHTML = `<div style="padding: 2rem; text-align: center; color: red; font-family: 'Aldrich', sans-serif;">
+            rootEl.innerHTML = `<div style="padding: 2rem; text-align: center; color: red; font-family: 'Geo', sans-serif;">
                 <h2>Critical Error</h2>
                 <p>Failed to load application. Check the console for details.</p>
                 <p>${err.message}</p>
@@ -435,4 +438,3 @@
     </script>
 </body>
 </html>
-
