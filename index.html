@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Tracker Pro</title>
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 
+      [FIX] All scripts are in the <head> without 'defer' to force synchronous loading.
+      This ensures React -> ReactDOM -> Lucide -> Supabase -> Babel load in the correct order,
+      which fixes the 'forwardRef' error.
+    -->
+    
+    <!-- 2. React & ReactDOM (Must load first) -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 3. Libraries (Must load after React) -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.395.0/dist/umd/lucide-react.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- 4. Babel (Must load after libraries) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 5. Google Font "Aldrich" -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&display=swap" rel="stylesheet">
+
+    <!-- 6. Tailwind Config to add the new font -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Aldrich', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    
+    <style>
+        /* Set base font to Aldrich */
+        body {
+            font-family: 'Aldrich', sans-serif;
+            background-color: #030712; /* gray-950 */
+        }
+        .bg-main-gradient {
+            background-image: radial-gradient(at 0% 0%, rgb(17, 24, 39) 0, transparent 50%), radial-gradient(at 98% 1%, rgb(17, 39, 61) 0, transparent 50%);
+            background-color: #030712; /* gray-950 */
+        }
+        .animated-bg-circle {
+            position: absolute;
+            border-radius: 9999px;
+            mix-blend-mode: multiply;
+            filter: blur(80px);
+            opacity: 0.2;
+            animation: pulse-light 8s infinite alternate;
+        }
+        @keyframes pulse-light {
+            0% { opacity: 0.1; transform: scale(0.9); }
+            100% { opacity: 0.25; transform: scale(1.1); }
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-main-gradient min-h-screen text-gray-200">
+    <!-- Animated background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      <div class="animated-bg-circle top-0 left-1/4 w-96 h-96 bg-purple-500" style="animation-delay: 0s;"></div>
+      <div class="animated-bg-circle top-1/3 right-1/4 w-96 h-96 bg-pink-500" style="animation-delay: 1s;"></div>
+      <div class="animated-bg-circle bottom-0 left-1/2 w-96 h-96 bg-blue-500" style="animation-delay: 2s;"></div>
+    </div>
+    
+    <!-- Root element for React -->
+    <div id="root" class="relative z-10">
+        <!-- This is a simple loader that shows BEFORE React loads -->
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 1rem;">
+            <div style="width: 5rem; height: 5rem; border-radius: 50%; border: 4px solid #4a044e; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+            <p style="font-size: 1.1rem; color: #d1d5db; font-family: 'Aldrich', sans-serif;">Loading Dashboard...</p>
+        </div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    </div>
+
+    <!-- 5. Your React Application -->
+    <script type="text/babel" id="app-script">
+        try {
+            // =======================================================================
+            // 1. INITIALIZATION & CONFIGURATION
+            // =======================================================================
+            const { useState, useEffect, createElement: e } = React;
+            
+            const { createRoot } = ReactDOM; 
+            const { createClient } = supabase;
+            
+            // --- Your Config ---
+            const SUPABASE_URL = "https://wokkfllbxhsihfzrissf.supabase.co"; 
+            const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indva2tmbGxieGhzaWhmenJpc3NmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzE0OTAsImV4cCI6MjA3Nzg0NzQ5MH0.MywwvFPIk3RR8COMxo0vU8bZ8nQTbDsDs3yqJTXwycU";
+            
+            const GMGN_REF_CODE = "QJ9AVQLN"; 
+            
+            // --- App Config ---
+            const isConfigured = SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+            let supabaseClient;
+            if (isConfigured) {
+                supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+
+            const CATEGORIES = [
+                { id: 'paid_updates', name: 'Dexscreener Paid', icon: 'TrendingUp', color: 'from-purple-500 to-pink-500', emoji: '💎' },
+                { id: 'cto_updates', name: 'CTO Updates', icon: 'Droplet', color: 'from-blue-500 to-cyan-500', emoji: '💧' },
+                { id: 'graduations', name: 'Graduations', icon: 'GraduationCap', color: 'from-green-500 to-emerald-500', emoji: '🎓' },
+                { id: 'top_gainers', name: 'Top Gainers', icon: 'Flame', color: 'from-orange-500 to-red-500', emoji: '🔥' },
+                { id: 'whale_alerts', name: 'Whale', icon: 'Whale', color: 'from-indigo-500 to-purple-500', emoji: '🐋' },
+                { id: 'smart_money', name: 'Smart Money', icon: 'Brain', color: 'from-yellow-500 to-orange-500', emoji: '🧠' },
+                { id: 'arbitrage_alerts', name: 'Arbitrage', icon: 'Zap', color: 'from-pink-500 to-rose-500', emoji: '⚡' }
+            ];
+            
+            const CHAINS = ['All Chains', 'Solana', 'Ethereum', 'Base', 'BSC', 'Arbitrum', 'Polygon'];
+
+            const ICONS = {
+                get: (name) => {
+                    if (window.lucide && window.lucide[name]) {
+                        return window.lucide[name];
+                    }
+                    // Fallback '?' icon
+                    return (props) => e('span', props, '?');
+                }
+            };
+
+            // =======================================================================
+            // 3. HELPER FUNCTIONS & COMPONENTS
+            // =======================================================================
+
+            function formatCurrency(num) {
+                if (typeof num !== 'number') return '$ -';
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency', currency: 'USD',
+                    notation: 'compact', maximumFractionDigits: 1
+                }).format(num);
+            }
+
+            function formatTimeAgo(dateString) {
+                if (!dateString) return '-';
+                const now = new Date();
+                const date = new Date(dateString);
+                const seconds = Math.floor((now - date) / 1000);
+
+                let interval = seconds / 31536000;
+                if (interval > 1) return Math.floor(interval) + "y ago";
+                interval = seconds / 2592000;
+                if (interval > 1) return Math.floor(interval) + "mo ago";
+                interval = seconds / 86400;
+                if (interval > 1) return Math.floor(interval) + "d ago";
+                interval = seconds / 3600;
+                if (interval > 1) return Math.floor(interval) + "h ago";
+                interval = seconds / 60;
+                if (interval > 1) return Math.floor(interval) + "m ago";
+                return Math.floor(seconds) + "s ago";
+            }
+
+            function LoadingSpinner() {
+                return e('div', { className: 'flex items-center justify-center py-20' },
+                    e('div', { className: 'relative' },
+                        e('div', { className: 'w-20 h-20 border-4 border-purple-500 border-t-transparent rounded-full animate-spin' }),
+                        e('div', { 
+                            className: 'absolute inset-0 w-20 h-20 border-4 border-pink-500 border-b-transparent rounded-full animate-spin',
+                            style: { animationDirection: 'reverse', animationDuration: '1.5s' }
+                        })
+                    )
+                );
+            }
+            
+            function ConfigurationError() {
+                return e('div', { className: 'flex justify-center items-center h-screen -mt-20' }, 
+                    e('div', { className: 'max-w-lg p-8 bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-xl border border-gray-700 ring-1 ring-red-500/50' },
+                        e('h2', { className: 'text-2xl font-bold text-red-400 mb-4' }, 'Configuration Incomplete'),
+                        e('p', { className: 'text-gray-300' }, 
+                            "The app is not configured. Please edit the ",
+                            e('code', { className: 'bg-gray-900 text-yellow-400 px-1 py-0.5 rounded' }, 'index.html'),
+                            " file and add your Supabase URL and Key."
+                        )
+                    )
+                );
+            }
+
+            function TokenCard({ token, category, onTokenClick }) {
+                const showWalletColumn = category.id === 'whale_alerts' || category.id === 'smart_money';
+                const showArbitrageColumns = category.id === 'arbitrage_alerts';
+                
+                return e('div', {
+                    className: 'group relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 hover:border-purple-500 transition-all transform hover:scale-105 hover:-translate-y-1 shadow-xl'
+                },
+                    e('div', { className: `absolute inset-0 rounded-2xl bg-gradient-to-r ${category.color} opacity-0 group-hover:opacity-10 transition-opacity blur-xl` }),
+                    e('div', { className: 'relative' },
+                        // Card Header
+                        e('div', { className: 'flex items-start justify-between mb-4' },
+                            e('div', { className: 'flex-1 min-w-0' },
+                                e('h3', { className: 'text-xl font-bold text-white mb-1 truncate' }, token.name || 'Unknown Token'),
+                                e('p', { className: 'text-sm text-gray-400 truncate' }, token.symbol || 'N/A')
+                            ),
+                            e('span', { className: `px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${category.color} text-white ml-2 flex-shrink-0` }, token.chain || 'N/A')
+                        ),
+                        
+                        // Card Stats
+                        e('div', { className: 'space-y-2 mb-4' },
+                            // --- Standard Fields ---
+                            !showArbitrageColumns && e('div', { className: 'flex justify-between text-sm' },
+                                e('span', { className: 'text-gray-400' }, 'Liquidity'),
+                                e('span', { className: 'text-green-400 font-semibold' }, formatCurrency(token.liquidity_usd))
+                            ),
+                            !showArbitrageColumns && e('div', { className: 'flex justify-between text-sm' },
+                                e('span', { className: 'text-gray-400' }, 'Market Cap'),
+                                e('span', { className: 'text-gray-300 font-semibold' }, formatCurrency(token.market_cap))
+                            ),
+                            
+                            // --- Arbitrage Fields ---
+                            showArbitrageColumns && e('div', { className: 'flex justify-between text-sm' },
+                                e('span', { className: 'text-gray-400' }, 'Spread'),
+                                e('span', { className: 'text-yellow-400 font-semibold' }, token.spread_percent ? `${(token.spread_percent * 100).toFixed(2)}%` : '-')
+                            ),
+                            
+                            // --- Whale/Smart Fields ---
+                            showWalletColumn && e('div', { className: 'flex justify-between text-sm' },
+                                e('span', { className: 'text-gray-400' }, 'Wallet'),
+                                e('span', { className: 'text-purple-400 text-xs' }, token.wallet_address ? `${token.wallet_address.slice(0, 6)}...${token.wallet_address.slice(-4)}` : '-')
+                            ),
+                            
+                            // --- Contract Address (All) ---
+                            e('div', { className: 'flex justify-between text-sm' },
+                                e('span', { className: 'text-gray-400' }, 'Contract'),
+                                e('span', { className: 'text-cyan-400 text-xs' }, token.contract_address ? `${token.contract_address.slice(0, 6)}...${token.contract_address.slice(-4)}` : '-')
+                            )
+                        ),
+                        
+                        // GMGN Button
+                        e('button', {
+                            onClick: () => onTokenClick(token.contract_address, token.chain),
+                            className: `block w-full py-3 px-4 rounded-xl font-semibold text-center bg-gradient-to-r ${category.color} hover:shadow-lg transition-all transform hover:scale-105 text-white mb-3`
+                        }, e('span', { className: 'flex items-center justify-center gap-2' },
+                            'View on GMGN',
+                            e(ICONS.get('ExternalLink'), { size: 16 })
+                        )),
+                        
+                        // Timestamp
+                        e('p', { className: 'text-xs text-gray-500 mt-4 text-center' }, `Spotted: ${formatTimeAgo(token.time_posted)}`)
+                    )
+                );
+            }
+
+            // =======================================================================
+            // 4. MAIN APPLICATION COMPONENT
+            // =======================================================================
+            function App() {
+                const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
+                const [selectedChain, setSelectedChain] = useState(CHAINS[0]); // 'All Chains'
+                const [tokens, setTokens] = useState([]);
+                const [loading, setLoading] = useState(isConfigured);
+                const [error, setError] = useState(null);
+                const [showChainFilter, setShowChainFilter] = useState(false);
+
+                useEffect(() => {
+                    if (!isConfigured) {
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    async function fetchTokens() {
+                        setLoading(true);
+                        setError(null);
+                        
+                        // [FIX] Added the missing catch and finally blocks to fix the SyntaxError
+                        try {
+                            let query = supabaseClient
+                                .from(selectedCategory) 
+                                .select('*')
+                                .order('time_posted', { ascending: false })
+                                .limit(50);
+                            
+                            if (selectedChain !== 'All Chains') {
+                                const chainQuery = selectedChain.toLowerCase();
+                                query = query.or(`chain.eq.${selectedChain},chain.eq.${chainQuery}`);
+                            }
+
+                            const { data, error } = await query;
+                                
+                            if (error) throw error;
+                            if (data) setTokens(data);
+                        } catch (err) {
+                            console.error("Error fetching from Supabase:", err.message);
+                            setError(err.message);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                    
+                    fetchTokens();
+                    const interval = setInterval(fetchTokens, 30000); // Refresh every 30s
+                    return () => clearInterval(interval);
+                }, [selectedCategory, selectedChain]);
+                
+                const handleTokenClick = (contractAddress, chain) => {
+                    const safeChain = (chain || 'eth').toLowerCase();
+                    let url;
+
+                    if (!contractAddress) {
+                        // Fallback to homepage with ref parameter
+                        url = `https://gmgn.ai/?ref=${GMGN_REF_CODE}`;
+                    } else {
+                        // Use the official doc structure: https://gmgn.ai/{Chain}/token/{ReferralCode}_{TokenContract}
+                        const chainPrefix = safeChain === 'solana' ? 'sol' : safeChain;
+                        url = `https://gmgn.ai/${chainPrefix}/token/${GMGN_REF_CODE}_${contractAddress}`;
+                    }
+                    window.open(url, '_blank');
+                };
+                
+                const currentCategory = CATEGORIES.find(c => c.id === selectedCategory);
+
+                // Main App Render
+                return e('div', null,
+                    // Header
+                    e('header', { className: 'border-b border-gray-800 bg-black/40 backdrop-blur-xl sticky top-0 z-30' },
+                        e('div', { className: 'max-w-7xl mx-auto px-4 py-6' },
+                            e('div', { className: 'flex items-center justify-between flex-wrap gap-4' },
+                                e('div', null,
+                                    e('h1', { className: 'text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent' }, 'Crypto Tracker Pro'),
+                                    e('p', { className: 'text-gray-400 mt-1' }, 'Real-time market intelligence')
+                                ),
+                                e('div', { className: 'relative' },
+                                    e('button', {
+                                        onClick: () => setShowChainFilter(!showChainFilter),
+                                        className: 'flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg'
+                                    },
+                                        e(ICONS.get('Filter'), { size: 18 }),
+                                        selectedChain
+                                    ),
+                                    showChainFilter && e('div', { className: 'absolute right-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden z-40' },
+                                        CHAINS.map(chain => e('button', {
+                                            key: chain,
+                                            onClick: () => {
+                                                setSelectedChain(chain);
+                                                setShowChainFilter(false);
+                                            },
+                                            className: `w-full px-4 py-3 text-left hover:bg-gray-700 transition-colors ${
+                                                selectedChain === chain ? 'bg-gray-700 text-purple-400' : 'text-gray-300'
+                                            }`
+                                        }, chain))
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    
+                    // Category Navigation
+                    e('nav', { className: 'border-b border-gray-800 bg-black/30 backdrop-blur-xl sticky top-[97px] z-20' }, 
+                        e('div', { className: 'max-w-7xl mx-auto px-4' },
+                            e('div', { className: 'flex gap-2 overflow-x-auto py-4 no-scrollbar' },
+                                CATEGORIES.map(category => {
+                                    const Icon = ICONS.get(category.icon);
+                                    const isActive = selectedCategory === category.id;
+                                    return e('button', {
+                                        key: category.id,
+                                        onClick: () => setSelectedCategory(category.id),
+                                        className: `flex items-center gap-1.5 px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all transform hover:scale-105 ${
+                                            isActive
+                                                ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
+                                                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50'
+                                        }`
+                                    },
+                                        e('span', { className: 'text-lg' }, category.emoji),
+                                        e(Icon, { size: 18 }),
+                                        category.name
+                                    );
+                                })
+                            )
+                        )
+                    ),
+                    
+                    // Main Content
+                    e('main', { className: 'max-w-7xl mx-auto px-4 py-8' },
+                        !isConfigured ? e(ConfigurationError) :
+                        loading ? e(LoadingSpinner) :
+                        !loading && error ? e('div', { className: 'text-center py-20' },
+                            e('h3', { className: 'text-2xl font-bold text-red-400 mb-2' }, 'Error loading data'),
+                            e('p', { className: 'text-gray-500' }, `Could not fetch data from Supabase. Error: ${error.message}`)
+                        ) :
+                        !loading && tokens.length === 0 ? e('div', { className: 'text-center py-20' },
+                            e('div', { className: `inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r ${currentCategory.color} mb-4` },
+                                e('span', { className: 'text-4xl' }, currentCategory.emoji)
+                            ),
+                            e('h3', { className: 'text-2xl font-bold text-gray-300 mb-2' }, 'No tokens found'),
+                            e('p', { className: 'text-gray-500' }, `Check back soon for updates in the ${currentCategory.name} category.`)
+                        ) :
+                        // Token Grid
+                        e('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' },
+                            tokens.map(token => e(TokenCard, {
+                                key: token.id,
+                                token,
+                                category: currentCategory,
+                                onTokenClick: handleTokenClick,
+                            }))
+                        )
+                    ),
+                    
+                    // Footer
+                    e('footer', { className: 'border-t border-gray-800 bg-black/40 backdrop-blur-xl mt-20' },
+                        e('div', { className: 'max-w-7xl mx-auto px-4 py-8 text-center' },
+                            e('p', { className: 'text-gray-400' }, 'Powered by Make.com automation • Real-time data from multiple sources'),
+                            e('p', { className: 'text-gray-600 text-sm mt-2' }, 'All links contain your GMGN referral code')
+                        )
+                    )
+                );
+            }
+            
+            // =======================================================================
+            // 5. RENDER THE APP
+            // =======================================================================
+            const root = createRoot(document.getElementById('root'));
+            root.render(e(App));
+        
+        } catch (err) {
+            // This will catch any synchronous error during initialization
+            console.error("Failed to initialize React App:", err);
+            const rootEl = document.getElementById('root');
+            rootEl.innerHTML = `<div style="padding: 2rem; text-align: center; color: red; font-family: 'Aldrich', sans-serif;">
+                <h2>Critical Error</h2>
+                <p>Failed to load application. Check the console for details.</p>
+                <p>${err.message}</p>
+            </div>`;
+        }
+    </script>
+</body>
+</html>
+
